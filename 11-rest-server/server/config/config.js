@@ -19,7 +19,7 @@ let urlDB;
 if (process.env.NODE_ENV === 'dev') {
     urlDB = 'mongodb://localhost:27017/credix';
 } else {
-    urlDB = '';
+    urlDB = process.env.MONGO_URI; // variable de entorno creada con heroku
 }
 
 process.env.URLDB = urlDB;
