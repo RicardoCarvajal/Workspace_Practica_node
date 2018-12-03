@@ -1,0 +1,16 @@
+{
+  "name": "09-node-clima",
+  "version": "1.0.0",
+  "description": "Prueba",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ricardo",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "axios-https-proxy-fix": "^0.17.1",
+    "yargs": "^12.0.5"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "04-electron-hola-mundo",
+  "version": "1.0.0",
+  "description": "Primera app electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Ricardo Carvajal",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^3.0.10"
+  },
+  "dependencies": {
+    "bootstrap-vue": "^2.0.0-rc.11",
+    "i": "^0.3.6",
+    "npm": "^6.4.1",
+    "redis": "^2.8.0",
+    "vue": "^2.5.17"
+  }
+}
