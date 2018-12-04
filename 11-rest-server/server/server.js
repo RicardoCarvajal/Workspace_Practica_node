@@ -10,7 +10,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
-app.use(require('./rutas/usuario'))
+app.use(require('./rutas/index'));
 
 mongoose.connect(process.env.URLDB,{
     useCreateIndex: true,
