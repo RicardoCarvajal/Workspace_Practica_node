@@ -38,5 +38,5 @@ process.env.ENDTIME_TOKEN = 60 * 60 * 24 * 30;
 if (process.env.NODE_ENV === 'dev') {
     process.env.SEED_TOKEN = process.env.SEED_TOKEN_PRODUC;
 } else {
-    process.env.SEED_TOKEN = 'secret';
+    process.env.SEED_TOKEN = 'secret_86926323';
 }
