@@ -28,7 +28,7 @@ process.env.URLDB = urlDB;
 // TOKEN TIME
 //==============================================
 
-process.env.ENDTIME_TOKEN = 60 * 60 * 24 * 30;
+process.env.ENDTIME_TOKEN = '48h';
 
 
 //==============================================
@@ -40,3 +40,9 @@ if (process.env.NODE_ENV === 'dev') {
 } else {
     process.env.SEED_TOKEN = 'secret_86926323';
 }
+
+
+//==============================================
+// Google client id
+//==============================================
+process.env.CLIENT_ID = process.env.CLIENT_ID || '1056761275549-f4udmj2e06hi37ev94d1ha54mm2fm004.apps.googleusercontent.com'
