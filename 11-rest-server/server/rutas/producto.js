@@ -33,6 +33,28 @@ app.post('/producto', verificaToken, (req, res) => {
 
 });
 
+app.get('/producto/buscar/:termino', verificaToken, (req, res) => {
+
+    let termino = req.params.termino;
+
+    let regex = new RegExp(termino,'i');
+
+    Producto.find({ nombre: regex })
+        .populate('categoria', 'nombre')
+        .exec((err, productos) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    err
+                });
+            }
+            res.json({
+                ok: true,
+                productos
+            });
+        });
+});
+
 app.get('/productos', verificaToken, (req, res) => {
 
     let desde = req.query.desde || 0;
@@ -98,46 +120,46 @@ app.get('/producto/:id', verificaToken, (req, res) => {
 
 })
 
-app.put('/producto/:id',verificaToken,(req,res)=>{
+app.put('/producto/:id', verificaToken, (req, res) => {
 
     let id = req.params.id;
-    let body = _.pick(req.body,['disponible']);
+    let body = _.pick(req.body, ['disponible']);
 
-    Producto.findByIdAndUpdate(id,body,{new:true , runValidators: true}, (err, productoDB)=>{
+    Producto.findByIdAndUpdate(id, body, { new: true, runValidators: true }, (err, productoDB) => {
         if (err) {
             return res.status(400).json({
-                ok:false,
+                ok: false,
                 err
             });
         }
         res.json({
-            ok:true,
+            ok: true,
             productoDB
         });
     });
 
 });
 
-app.delete('/producto/:id',verificaToken,(req,res)=>{
+app.delete('/producto/:id', verificaToken, (req, res) => {
     let id = req.params.id;
 
-    Producto.findByIdAndRemove(id,(err,productoBorrado)=>{
+    Producto.findByIdAndRemove(id, (err, productoBorrado) => {
         if (err) {
             return res.status(500).json({
-                ok:false,
+                ok: false,
                 err
             });
         }
         if (productoBorrado === null) {
             return res.status(400).json({
-                ok:false,
-                err:{
-                    message:'El producto que se quiere borra no existe'
+                ok: false,
+                err: {
+                    message: 'El producto que se quiere borra no existe'
                 }
             });
         }
         res.json({
-            ok:true,
+            ok: true,
             productoBorrado
         });
     });
