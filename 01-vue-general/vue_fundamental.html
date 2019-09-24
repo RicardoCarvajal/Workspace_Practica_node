@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <title>Vue Fundamental</title>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div id="shopping-list">
+            <div class="header">
+                <h1>{{header.toLocaleUpperCase()}}</h1>
+                <div class="container-fluid row justify-content-sm-end">
+                    <button v-if="state === 'default'" class="btn btn-success" @click="changeState('edit')">Edit</button>
+                    <button v-else class="btn btn-danger" @click="changeState('default')">Cancel</button>
+                </div>
+            </div>
+
+            <div class="add-item-form" v-if="state === 'edit'">
+                <!--Este imput puede manejarse dinamicamente 
+        con el objeto header y todo lo que cambie en 
+        el input modifica la variable header.-->
+
+                <!-- En este ejemplo se manejan los eventos de vue con la
+        etiqueta v-on y despues de los dos puntos el evento 
+        en este caso sea click o heyup.enter el simbolo @ hace 
+        lo mismo que la anotacion v-on. 
+        Luego solo debemos indicar el metodo javascript para 
+        añadir el item al array. -->
+
+                <input type="text" v-model="ItemsCapture" placeholder="add an item" @keyup.enter="saveItem">
+                <button class="btn btn-success" v-on:click="saveItem" v-bind:disabled="ItemsCapture.length === 0">Save</button>
+                <p>{{characterCount}}/200</p>
+                <div>
+                    <input type="text" v-model="capture" placeholder="add a linck">
+                    <a v-bind:href="capture" target="_blank">Dynamic Link</a>
+                </div>
+
+
+            </div>
+            <!-- Con la etiqueta de vue v-for se itera el obejeto en cuetion
+        items -->
+            <div>
+                <ul>
+                    <li v-for="items in reversedItems" :class="[items.purchased ? 'font-weight-bold' : '']" @click="togglePurchased(items)">{{items.label}}</li>
+                </ul>
+                <p v-if="items.length === 0 ">No hay articulos en la lista</p>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/vue"></script>
+    <script>
+        var shoppingList = new Vue({
+            el: '#shopping-list',
+            data: {
+                state: 'default',
+                header: 'Shopping List',
+                ItemsCapture: '',
+                capture: '',
+                items: [{
+                    label: '2 zapatos',
+                    purchased: false,
+                    highPriority: false
+                }, {
+                    label: '3 cauchos',
+                    purchased: true,
+                    highPriority: false
+                }, {
+                    label: '2 pelotas',
+                    purchased: false,
+                    highPriority: true
+                }]
+            },
+            computed: {
+                characterCount() {
+                    return this.ItemsCapture.length;
+                },
+                reversedItems() {
+                    return this.items.slice(0).reverse();
+                }
+            },
+            methods: {
+                saveItem: function() {
+                    this.items.push({
+                        label: this.ItemsCapture,
+                        purchased: false,
+                        highPriority: false
+                    });
+                    this.ItemsCapture = '';
+                },
+                changeState: function(newState) {
+                    this.state = newState;
+                    this.newState = '';
+                },
+                togglePurchased: function(items) {
+                    items.purchased = !items.purchased;
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
