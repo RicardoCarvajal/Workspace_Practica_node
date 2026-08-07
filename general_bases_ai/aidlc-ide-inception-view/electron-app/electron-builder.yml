@@ -1,0 +1,49 @@
+appId: biz.intelix.aidlc-ide-inception-view
+productName: AIDLC inception view
+copyright: Copyright ATE
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+asar: true
+# No installers (no NSIS, no deb).
+# Linux uses tar.gz (no AppImage tool download from electron-builder-binaries Releases).
+# Windows uses portable .exe.
+win:
+  icon: build/icon.png
+  # Avoid Wine when cross-compiling Windows from Linux (portable still works).
+  signAndEditExecutable: false
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: ${productName}-${version}-windows-x64.${ext}
+linux:
+  icon: build/icon.png
+  target:
+    - target: tar.gz
+      arch:
+        - x64
+  category: Development
+  artifactName: ${productName}-${version}-linux-x64.${ext}
+# macOS: Apple Silicon (arm64) by default via AIDLC_DIST_TARGETS=mac
+# Also lists x64 for AIDLC_DIST_TARGETS=mac-x64. Build on a Mac.
+# Unsigned for internal distribution (Gatekeeper: right-click → Open).
+mac:
+  icon: build/icon.png
+  category: public.app-category.developer-tools
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  identity: null
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}

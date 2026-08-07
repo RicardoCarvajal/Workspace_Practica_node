@@ -1,0 +1,44 @@
+version = 0.1
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.deploy.parameters]
+stack_name = "devate-aidlc-auth-api"
+resolve_s3 = true
+s3_prefix = "devate-aidlc-auth-api"
+region = "us-east-1"
+profile = "ate"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = [
+  "Environment=dev",
+  "LambdaSecurityGroupParam=/dev/ate/parameters/network/default-lambda-security-group",
+  "SubnetIdsParam=/dev/ate/parameters/network/subnet-ids"
+]
+tags = [
+  "Name=AIDLC-AUTH-API",
+  "Environment=DEV",
+  "Project=AIDLC"
+]
+image_repositories = []
+
+[devate.deploy.parameters]
+stack_name = "devate-aidlc-auth-api"
+resolve_s3 = true
+s3_prefix = "devate-aidlc-auth-api"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = [
+  "Environment=dev",
+  "LambdaSecurityGroupParam=/dev/ate/parameters/network/default-lambda-security-group",
+  "SubnetIdsParam=/dev/ate/parameters/network/subnet-ids"
+]
+tags = [
+  "Name=AIDLC-AUTH-API",
+  "Environment=DEV",
+  "Project=AIDLC"
+]
+image_repositories = []

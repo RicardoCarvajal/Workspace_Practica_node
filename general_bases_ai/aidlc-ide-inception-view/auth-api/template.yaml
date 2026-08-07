@@ -1,0 +1,282 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: AIDLC - AUTH-API | Cognito User Pool, HTTP API config session, Secrets Manager, audit DynamoDB
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev]
+    Description: Deployment environment (MVP only dev)
+  LambdaSecurityGroupParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /dev/ate/parameters/network/default-lambda-security-group
+    Description: SSM path for Lambda security group id
+  SubnetIdsParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /dev/ate/parameters/network/subnet-ids
+    Description: SSM path for comma-separated subnet ids
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+    Timeout: 15
+    MemorySize: 256
+    LoggingConfig:
+      LogFormat: JSON
+      ApplicationLogLevel: INFO
+
+Resources:
+  AidlcAuthUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub ${AWS::StackName}-user-pool
+      UsernameAttributes: []
+      UsernameConfiguration:
+        CaseSensitive: false
+      AutoVerifiedAttributes: []
+      MfaConfiguration: "OFF"
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 7
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: admin_only
+            Priority: 1
+
+  AidlcAuthUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub ${AWS::StackName}-desktop-client
+      UserPoolId: !Ref AidlcAuthUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      SupportedIdentityProviders:
+        - COGNITO
+
+  AidlcAppConfigSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: /dev/aidlc/auth-api/app-config
+      Description: AIDLC - APP-CONFIG | Placeholder JSON matching desktop .env keys; replace values post-deploy
+      SecretString: !Sub |
+        {
+          "AWS_ACCESS_KEY_ID": "",
+          "AWS_SECRET_ACCESS_KEY": "",
+          "AWS_REGION": "us-east-1",
+          "AIDLC_DEV_MODE": "false",
+          "GITLAB_BASE_URL": "https://git.intelix.biz",
+          "GITLAB_USERNAME": "",
+          "GITLAB_PASSWORD": "",
+          "AIDLC_TEST_REPO_URL": ""
+        }
+
+  ConfigSessionAuditTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${AWS::StackName}-config-session-audit
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: auditId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: auditId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+
+  AidlcConfigHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Environment
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+      Auth:
+        DefaultAuthorizer: CognitoJwtAuthorizer
+        Authorizers:
+          CognitoJwtAuthorizer:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${AidlcAuthUserPool}
+              audience:
+                - !Ref AidlcAuthUserPoolClient
+
+  ConfigSessionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-config-session
+      Description: AIDLC - CONFIG-SESSION | Returns app config secret JSON for Cognito-authenticated sessions
+      CodeUri: src/
+      Handler: app.lambda_handler
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupParam
+        SubnetIds: !Split [",", !Ref SubnetIdsParam]
+      Environment:
+        Variables:
+          APP_CONFIG_SECRET_NAME: !Ref AidlcAppConfigSecret
+          AUDIT_TABLE_NAME: !Ref ConfigSessionAuditTable
+          POWERTOOLS_SERVICE_NAME: aidlc-auth-api
+          SECRET_CACHE_MAX_AGE: "300"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref AidlcAppConfigSecret
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt ConfigSessionAuditTable.Arn
+      Events:
+        ConfigSessionPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AidlcConfigHttpApi
+            Path: /config/session
+            Method: POST
+            Auth:
+              Authorizer: CognitoJwtAuthorizer
+
+  ConfigSessionFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-config-session
+      RetentionInDays: 7
+
+  AuthLoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-auth-login
+      Description: AIDLC - AUTH-LOGIN | Cognito USER_PASSWORD_AUTH for desktop via API
+      CodeUri: src/
+      Handler: auth_login.lambda_handler
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupParam
+        SubnetIds: !Split [",", !Ref SubnetIdsParam]
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref AidlcAuthUserPool
+          USER_POOL_CLIENT_ID: !Ref AidlcAuthUserPoolClient
+          POWERTOOLS_SERVICE_NAME: aidlc-auth-api
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:InitiateAuth
+              Resource: !GetAtt AidlcAuthUserPool.Arn
+      Events:
+        AuthLoginPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AidlcConfigHttpApi
+            Path: /auth/login
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  AuthLoginFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-auth-login
+      RetentionInDays: 7
+
+  AuthRespondNewPasswordFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-auth-respond-new-password
+      Description: AIDLC - AUTH-NEW-PASSWORD | Cognito NEW_PASSWORD_REQUIRED challenge response
+      CodeUri: src/
+      Handler: auth_respond_new_password.lambda_handler
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupParam
+        SubnetIds: !Split [",", !Ref SubnetIdsParam]
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref AidlcAuthUserPool
+          USER_POOL_CLIENT_ID: !Ref AidlcAuthUserPoolClient
+          POWERTOOLS_SERVICE_NAME: aidlc-auth-api
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:RespondToAuthChallenge
+              Resource: !GetAtt AidlcAuthUserPool.Arn
+      Events:
+        AuthRespondNewPasswordPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AidlcConfigHttpApi
+            Path: /auth/respond-new-password
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  AuthRespondNewPasswordFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-auth-respond-new-password
+      RetentionInDays: 7
+
+Outputs:
+  HttpApiUrl:
+    Description: Base URL of the HTTP API
+    Value: !Sub https://${AidlcConfigHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref AidlcAuthUserPool
+  UserPoolClientId:
+    Description: Cognito App Client ID for desktop
+    Value: !Ref AidlcAuthUserPoolClient
+  UserPoolIssuer:
+    Description: JWT issuer URL
+    Value: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${AidlcAuthUserPool}
+  AppConfigSecretName:
+    Description: Secrets Manager name for app config
+    Value: /dev/aidlc/auth-api/app-config
+  ConfigSessionAuditTableName:
+    Description: DynamoDB audit table name
+    Value: !Ref ConfigSessionAuditTable
+  ConfigSessionPath:
+    Description: Full path for config session
+    Value: !Sub https://${AidlcConfigHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/config/session
+  AuthLoginPath:
+    Description: Full path for auth login
+    Value: !Sub https://${AidlcConfigHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/auth/login
+  AuthRespondNewPasswordPath:
+    Description: Full path for new password challenge
+    Value: !Sub https://${AidlcConfigHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/auth/respond-new-password

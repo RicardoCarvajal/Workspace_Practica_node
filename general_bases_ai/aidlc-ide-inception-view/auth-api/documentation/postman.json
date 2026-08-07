@@ -1,0 +1,89 @@
+{
+  "info": {
+    "name": "AIDLC Auth API",
+    "description": "Auth login (public) then POST /config/session with Cognito Access Token. Replace {{baseUrl}} after deploy.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://{api-id}.execute-api.us-east-1.amazonaws.com/dev"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "username",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "session",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "description": "Returns tokens or { challenge: NEW_PASSWORD_REQUIRED, session, username }."
+      }
+    },
+    {
+      "name": "Auth Respond New Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/respond-new-password",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"session\": \"{{session}}\",\n  \"newPassword\": \"NewPassword123\"\n}"
+        },
+        "description": "Completes NEW_PASSWORD_REQUIRED; returns tokens."
+      }
+    },
+    {
+      "name": "Config Session",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/config/session",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "description": "Returns { \"config\": { ... } } or plain-text 404/500."
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+out/
+release/
+.env
+.env.*
+!.env.example
+aws-credentials.json
+*.log
+.DS_Store
+coverage/
+# Never commit bake-time secret material
+electron-app/electron/generated/
+.aws-sam/
+auth-api/.aws-sam/

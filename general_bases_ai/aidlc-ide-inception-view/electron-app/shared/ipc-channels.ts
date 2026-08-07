@@ -1,0 +1,33 @@
+export const IPC = {
+  bootstrap: 'aidlc:bootstrap',
+  login: 'aidlc:login',
+  logout: 'aidlc:logout',
+  getCognitoAuthStatus: 'aidlc:get-cognito-auth-status',
+  cognitoLogin: 'aidlc:cognito-login',
+  cognitoRespondNewPassword: 'aidlc:cognito-respond-new-password',
+  listRepos: 'aidlc:list-repos',
+  openRepo: 'aidlc:open-repo',
+  getRememberedLogin: 'aidlc:get-remembered-login',
+  getUserProfile: 'aidlc:get-user-profile',
+  saveUserProfile: 'aidlc:save-user-profile',
+  getAwsLocalStatus: 'aidlc:get-aws-local-status',
+  saveAwsLocalCredentials: 'aidlc:save-aws-local-credentials',
+  listTree: 'aidlc:list-tree',
+  getFile: 'aidlc:get-file',
+  saveDraft: 'aidlc:save-draft',
+  discardDraft: 'aidlc:discard-draft',
+  clearProjectDrafts: 'aidlc:clear-project-drafts',
+  listDrafts: 'aidlc:list-drafts',
+  fileRecentDiff: 'aidlc:file-recent-diff',
+  observationsGet: 'aidlc:observations-get',
+  observationsSave: 'aidlc:observations-save',
+  observationsAppend: 'aidlc:observations-append',
+  observationsClose: 'aidlc:observations-close',
+  observationsPull: 'aidlc:observations-pull',
+  chatGetSession: 'aidlc:chat-get-session',
+  chatSend: 'aidlc:chat-send',
+  ragReindex: 'aidlc:rag-reindex',
+  ragEnsureIndex: 'aidlc:rag-ensure-index'
+} as const
+
+export type IpcChannel = (typeof IPC)[keyof typeof IPC]
